@@ -21,6 +21,13 @@ module Riscv
             raise "need a riscv file : riscv [options] <file>"
           end
           return ok
+        elsif args[:elfrun]
+          if filename=args[:file]
+            ok=compiler.simulate(filename)
+          else
+            raise "need a riscv file : riscv [options] <file>.s"
+          end
+          return ok
         elsif args[:elfdump]
           if filename=args[:file]
             ok=compiler.parse_elfdump(filename)
@@ -65,8 +72,8 @@ module Riscv
         options[:parse_only]=true
       end
 
-      parser.on("-e", "--elfdump", "textual ELF objdump parsing") do
-        options[:elfdump]=true
+      parser.on("-r", "--run", "running simulator from ELF binary file") do
+        options[:elfrun]=true
       end
 
       parser.on("--pp", "pretty print back source code ") do

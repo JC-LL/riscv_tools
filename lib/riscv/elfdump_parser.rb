@@ -1,7 +1,8 @@
-
 require_relative 'elfdump_lexer'
 require_relative 'elfdump_ast'
+
 module Riscv
+
   class ElfDumpParser < GenericParser
     attr_accessor :options
     attr_accessor :lexer,:tokens
@@ -33,49 +34,55 @@ module Riscv
 
     def parse filename
       puts "parsing #{filename}"
+      basename=File.basename(filename)
       begin
         @tokens=lex(filename)
         puts "......empty file !" if tokens.size==0
-        root=Root.new([])
+        elf_program=ElfProgram.new(basename)
         while tokens.any?
-          root << parse_section
+          section=parse_section
+          elf_program.sections_h[section.name]=section
         end
       rescue Exception => e
         unless options[:mute]
-          puts e.backtrace
           puts e
+          puts e.backtrace
         end
         raise
       end
-      root
+      elf_program
     end
 
     def parse_section
-      section=Section.new
+      section=Section.new()
       if tokens.any?
         print "=> seeking next section..."
         until showNext.is_a? :section
           acceptIt
         end
         acceptIt
-        section_name=expect(:directive)
+        section.name=expect(:directive).val
         expect :colon
-        puts "found #{section_name.val}"
-        parse_labelled_blocks
+        puts "found #{section.name}"
+        section.blocks=parse_labelled_blocks
+        return section
       end
+      nil
     end
 
     def parse_labelled_blocks
+      blocks=[]
       while tokens.any? and  showNext.is_a? :addr_label
-        parse_labelled_block
+        blocks << parse_labelled_block
       end
+      blocks
     end
 
     def parse_labelled_block
-      puts "=> parse labelled block"
       addr_label=expect(:addr_label).val
       addr_label.delete!(':')
       addr,label=addr_label.split
+      puts "=> parse labelled block #{label} at #{addr}"
       block=Labelled_block.new(addr,label)
       while tokens.any? and showNext.is_a? :addr_instr #address
         block.instructions << parse_instruction_line

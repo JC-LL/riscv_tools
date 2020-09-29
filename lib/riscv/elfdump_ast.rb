@@ -3,12 +3,35 @@ module Riscv
   class AstNode
   end
 
+  class ElfProgram < AstNode
+    attr_accessor :name
+    attr_accessor :sections_h
+    def initialize name
+      @name=name
+      @sections_h={}
+    end
+
+    def << section
+      @sections_h[section.name]=section
+    end
+
+    def get_section name
+      @sections_h[name]
+    end
+
+  end
+
   class Section < AstNode
-    attr_accessor :labelled_blocks
+    attr_accessor :name
+    attr_accessor :blocks
     attr_accessor :funcs
     def initialize
-      @labelled_blocks=[]
+      @blocks=[]
       @funcs=[]
+    end
+
+    def get_block label
+      @blocks.find{|bloc| bloc.label==label}
     end
   end
 
