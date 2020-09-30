@@ -1,4 +1,5 @@
 require_relative 'elfdump_parser'
+require_relative 'isa'
 
 module Riscv
   class Iss
@@ -6,7 +7,7 @@ module Riscv
     attr_accessor :memory
     def initialize
       puts "RISCV ISS - Instruction Set Simulator".center(80,'=')
-      puts "warning : this ISS only works without optimizations  (O0 required for gcc)."
+      puts "warning : this ISS only works _without_ optimizations  (-O0 required for gcc)."
       puts "          Mind that -00 does not produce .text.startup section."
       puts "          and the <main> is located just after the other sections."
       puts "          ISS is based on this assumption."
@@ -35,10 +36,15 @@ module Riscv
 
     def print_memory
       puts " - printing memory"
+      puts "ISA encoding : "
+      ISA::ENCODING.each do |type,encoding|
+        puts "#{type} : #{encoding}"
+      end
       max_hexa_digits=@memory.keys.map{|addr| addr.to_s(16).size}.max
       @memory.each do |addr,bin|
         puts "#{addr.to_s(16).rjust(max_hexa_digits)} #{bin.to_s(16).rjust(8,'0')} #{bin.to_s(2).rjust(32,'0')}"
       end
+
     end
 
     def run
