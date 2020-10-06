@@ -1,6 +1,6 @@
 require_relative 'elfdump_parser'
 require_relative 'isa'
-
+require 'colorize'
 module Riscv
   class Iss
 
@@ -54,9 +54,17 @@ module Riscv
         ISA::FORMAT_ENCODING_H[format].each do |field_name,field_range|
           decoding[field_name]=bitfield(bin,field_range).to_s(16)
         end
-        disassemble_instr=disassemble_hash(decoding)
-        print "#{addr.to_s(16).rjust(max_hexa_digits)} #{bin.to_s(16).rjust(8,'0')} #{bin.to_s(2).rjust(32,'0')} #{instr}"
-        puts "#{format_s} #{decoding} #{disassemble_instr}"
+        begin
+          disassemble_instr=disassemble_hash(decoding)
+        rescue Exception => e
+          puts e
+          puts e.backtrace
+          raise
+        end
+        puts "#{addr.to_s(16).rjust(max_hexa_digits)} #{bin.to_s(16).rjust(8,'0')} #{bin.to_s(2).rjust(32,'0')} #{instr}"
+        puts "\t#{decoding}"
+        puts "\t#{format_s}"
+        puts "\t#{disassemble_instr}"
       end
     end
 
@@ -70,37 +78,164 @@ module Riscv
     end
 
     def disassemble_hash hash
-      case hash[:opcode].to_i(16)
+      #pp hash
+      text=[]
+      case opcode=hash[:opcode].to_i(16)
       when 0b0110111
         #lui
+        text << :lui
       when 0b0010111
-        #auipc
+        text << :auipc
       when 0b1101111
-        #jal
+        text << :jal
       when 0b1100111
-        #jalr
-      when 0b1100011
+        text << :jalr
+      when 0b1100011 #===== B type ======
         #beq,bne,blt,bge,bltu,bgeu
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000
+          text << :beq
+        when 0b001
+          text << :bne
+        when 0b100
+          text << :blt
+        when 0b101
+          text << :bge
+        when 0b110
+          text << :bltu
+        when 0b111
+          text << :bgeu
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b1100011"
+        end
       when 0b0000011
-        #lb,lh,lw,lbu,lhu
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000
+          text << :lb
+        when 0b001
+          text << :lh
+        when 0b010
+          text << :lw
+        when 0b100
+          text << :lbu
+        when 0b101
+          text << :lhu
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
+        end
       when 0b0100011
-        #sb,sh,sw
-      when 0b0010011
-        #addi,,slti,sltiu,xori,ori,andi,slli,srli
-      when 0b0110011
-        #add,sub,sll,slt,sltu,xor,srl,sra,or,and
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000
+          text << :sb
+        when 0b001
+          text << :sh
+        when 0b010
+          text << :sw
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
+        end
+      when 0b0010011 #=== i_type
+        #addi,slti,sltiu,xori,ori,andi,slli,srli
+        rs1=hash[:rs1].to_i(16)
+        rd =hash[:rd].to_i(16)
+        imm=hash[:imm_11_0].to_i(16)
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000
+          text << [:addi,rd,rs1,imm]
+        when 0b010
+          text << :slti
+        when 0b011
+          text << :sltiu
+        when 0b100
+          text << :xori
+        when 0b110
+          text << :ori
+        when 0b111
+          text << :andi
+        when 0b001
+          text << :slli
+        when 0b101
+          #srli,srai
+          case imm_11_5=(hash[:imm_11_0].to_i(16) & 0b1111111) # 7 bits
+          when 0b0000000
+            text << :srli
+          when 0b0100000
+            text << :srai
+          else
+            raise "unknown case for opcode=0b0010011 with func3=0b101"
+          end
+        else
+          raise "unknown funct3 '0b#{funct3.to_s(2)}'"
+        end
+      when 0b0110011 #r_type
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000 #add,#sub
+          case imm_11_5=hash[:funct7].to_i(16)
+          when 0b0000000
+            text << :add
+          when 0b0100000
+            text << :sub
+          else
+            raise "unknown case for opcode=0b0110011 with func3=0b000"
+          end
+        when 0b001
+          text << :sll
+        when 0b010
+          text << :slt
+        when 0b011
+          text << :sltu
+        when 0b100
+          text << :xor
+        when 0b101
+          #srl,sra
+          case imm_11_5=(hash[:imm_11_0].to_i(16) & 0b1111111) # 7 bits
+          when 0b0000000
+            text << :srl
+          when 0b0100000
+            text << :sra
+          else
+            raise "unknown case for i_type with func3=0b101"
+          end
+        when 0b110
+          text << :or
+        when 0b111
+          text << :and
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
+        end
       when 0b0001111
         #fence, fence.i
       when 0b1100111
         #ecall,ebreak
       when 0b1110011
         #csrrw,etc
-      when 0b0000001
+      when 0b0110011
         #mul etc
+        case funct3=hash[:funct3].to_i(16)
+        when 0b000
+          text << :mul
+        when 0b001
+          text << :mulh
+        when 0b010
+          text << :mulhsu
+        when 0b011
+          text << :mulhu
+        when 0b100
+          text << :div
+        when 0b101
+          text << :divu
+        when 0b110
+          text << :rem
+        when 0b111
+          text << :remu
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0110011"
+        end
       else
-        puts "unknown opcode in #{hash}"
+        puts "unknown opcode '0b#{opcode.to_s(2).rjust(7,'0')}' in #{hash}"
       end
-      return "?"
+      return "NIY".red if text.empty?
+      return text.join(" ").green
     end
 
     def run
