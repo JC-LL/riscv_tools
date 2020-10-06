@@ -52,7 +52,7 @@ module Riscv
         format_s=format.to_s.split("_").first
         decoding={}
         ISA::FORMAT_ENCODING_H[format].each do |field_name,field_range|
-          decoding[field_name]=bitfield(bin,field_range).to_s(16)
+          decoding[field_name]=bitfield(bin,field_range)
         end
         begin
           disassemble_instr=disassemble_hash(decoding)
@@ -80,87 +80,116 @@ module Riscv
     def disassemble_hash hash
       #pp hash
       text=[]
-      case opcode=hash[:opcode].to_i(16)
+      case opcode=hash[:opcode]
       when 0b0110111
-        #lui
-        text << :lui
-      when 0b0010111
-        text << :auipc
-      when 0b1101111
-        text << :jal
-      when 0b1100111
-        text << :jalr
-      when 0b1100011 #===== B type ======
+        imm =hash[:imm_31_12]    << 12
+        text << [:lui,imm]
+      when 0b0010111 #===== U format =====
+        imm =hash[:imm_31_12]    << 12
+        imm= "pc+#{imm}"
+        text << [:auipc,imm]
+      when 0b1101111 #===== J format =====
+        imm =hash[:imm_20]    << 20
+        imm+=hash[:imm_10_1]  <<  1
+        imm+=hash[:imm_11]    << 11
+        imm+=hash[:imm_19_12] << 12
+        rd= hash[:rd]
+        imm="pc+#{imm}"
+        text << [:jal,rd,imm]
+      when 0b1100111 #===== I format =====
+        imm =hash[:imm_11_0]
+        rs1 =hash[:rs1]
+        rd  =hash[:rd]
+        text << [:jalr,rd,rs1,imm]
+      when 0b1100011 #===== B format =====
         #beq,bne,blt,bge,bltu,bgeu
-        case funct3=hash[:funct3].to_i(16)
+        rs1 =hash[:rs1]
+        rs2 =hash[:rs2]
+        imm =hash[:imm_12]   << 12
+        imm+=hash[:imm_10_5] << 5
+        imm+=hash[:imm_4_1]  << 1
+        imm+=hash[:imm_11]   << 11
+        imm-=2**13 if ((imm & 0b1000000000000) >> 12)==1 #????
+        sign="+" unless imm < 0
+        imm="pc#{sign}#{imm}"
+        case funct3=hash[:funct3]
         when 0b000
-          text << :beq
+          text << [:beq,rs1,rs2,imm]
         when 0b001
-          text << :bne
+          text << [:bne,rs1,rs2,imm]
         when 0b100
-          text << :blt
+          text << [:blt,rs1,rs2,imm]
         when 0b101
-          text << :bge
+          text << [:bge,rs1,rs2,imm]
         when 0b110
-          text << :bltu
+          text << [:bltu,rs1,rs2,imm]
         when 0b111
-          text << :bgeu
+          text << [:bgeu,rs1,rs2,imm]
         else
           raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b1100011"
         end
-      when 0b0000011
-        case funct3=hash[:funct3].to_i(16)
+      when 0b0000011 #==== i_type
+        imm =hash[:imm_11_0]
+        imm-=2**12 if ((imm & 0b100000000000) >> 11)==1
+        rs1 =hash[:rs1]
+        rd  =hash[:rd]
+        case funct3=hash[:funct3]
         when 0b000
-          text << :lb
+          text << [:lb,rd,rs1,imm]
         when 0b001
-          text << :lh
+          text << [:lh,rd,rs1,imm]
         when 0b010
-          text << :lw
+          text << [:lw,rd,rs1,imm]
         when 0b100
-          text << :lbu
+          text << [:lbu,rd,rs1,imm]
         when 0b101
-          text << :lhu
+          text << [:lhu,rd,rs1,imm]
         else
           raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
         end
-      when 0b0100011
-        case funct3=hash[:funct3].to_i(16)
+      when 0b0100011 #==== s_type
+        rs1=hash[:rs1]
+        rs2=hash[:rs2]
+        imm=(hash[:imm_11_5] << 5) + hash[:imm_4_0]
+        imm-=2**12 if ((imm & 0b100000000000) >> 11)==1
+        case funct3=hash[:funct3]
         when 0b000
-          text << :sb
+          text << [:sb,rs1,rs2,imm]
         when 0b001
-          text << :sh
+          text << [:sh,rs1,rs2,imm]
         when 0b010
-          text << :sw
+          text << [:sw,rs1,rs2,imm]
         else
           raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
         end
       when 0b0010011 #=== i_type
         #addi,slti,sltiu,xori,ori,andi,slli,srli
-        rs1=hash[:rs1].to_i(16)
-        rd =hash[:rd].to_i(16)
-        imm=hash[:imm_11_0].to_i(16)
-        case funct3=hash[:funct3].to_i(16)
+        rs1=hash[:rs1]
+        rd =hash[:rd]
+        imm=hash[:imm_11_0]
+        imm-=2**12 if ((imm & 0b100000000000) >> 11)==1
+        case funct3=hash[:funct3]
         when 0b000
           text << [:addi,rd,rs1,imm]
         when 0b010
-          text << :slti
+          text << [:slti,rd,rs1,imm]
         when 0b011
-          text << :sltiu
+          text << [:sltiu,rd,rs1,imm]
         when 0b100
-          text << :xori
+          text << [:xori,rd,rs1,imm]
         when 0b110
-          text << :ori
+          text << [:ori,rd,rs1,imm]
         when 0b111
-          text << :andi
+          text << [:andi,rd,rs1,imm]
         when 0b001
-          text << :slli
+          text << [:slli,rd,rs1,imm]
         when 0b101
           #srli,srai
-          case imm_11_5=(hash[:imm_11_0].to_i(16) & 0b1111111) # 7 bits
+          case imm_11_5=(hash[:imm_11_0] & 0b1111111) # 7 bits
           when 0b0000000
-            text << :srli
+            text << [:srli,rd,rs1,imm]
           when 0b0100000
-            text << :srai
+            text << [:srai,rd,rs1,imm]
           else
             raise "unknown case for opcode=0b0010011 with func3=0b101"
           end
@@ -168,38 +197,41 @@ module Riscv
           raise "unknown funct3 '0b#{funct3.to_s(2)}'"
         end
       when 0b0110011 #r_type
-        case funct3=hash[:funct3].to_i(16)
+        rs1=hash[:rs1]
+        rs2=hash[:rs2]
+        rd =hash[:rd]
+        case funct3=hash[:funct3]
         when 0b000 #add,#sub
-          case imm_11_5=hash[:funct7].to_i(16)
+          case imm_11_5=hash[:funct7]
           when 0b0000000
-            text << :add
+            text << [:add,rd,rs1,rs2]
           when 0b0100000
-            text << :sub
+            text << [:sub,rd,rs1,rs2]
           else
             raise "unknown case for opcode=0b0110011 with func3=0b000"
           end
         when 0b001
-          text << :sll
+          text << [:sll,rd,rs1,rs2]
         when 0b010
-          text << :slt
+          text << [:slt,rd,rs1,rs2]
         when 0b011
-          text << :sltu
+          text << [:sltu,rd,rs1,rs2]
         when 0b100
-          text << :xor
+          text << [:xor,rd,rs1,rs2]
         when 0b101
           #srl,sra
-          case imm_11_5=(hash[:imm_11_0].to_i(16) & 0b1111111) # 7 bits
+          case imm_11_5=(hash[:imm_11_0] & 0b1111111) # 7 bits
           when 0b0000000
-            text << :srl
+            text << [:srl,rd,rs1,rs2]
           when 0b0100000
-            text << :sra
+            text << [:sra,rd,rs1,rs2]
           else
             raise "unknown case for i_type with func3=0b101"
           end
         when 0b110
-          text << :or
+          text << [:or,rd,rs1,rs2]
         when 0b111
-          text << :and
+          text << [:and,rd,rs1,rs2]
         else
           raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0100011"
         end
@@ -211,23 +243,23 @@ module Riscv
         #csrrw,etc
       when 0b0110011
         #mul etc
-        case funct3=hash[:funct3].to_i(16)
+        case funct3=hash[:funct3]
         when 0b000
-          text << :mul
+          text << [:mul]
         when 0b001
-          text << :mulh
+          text << [:mulh]
         when 0b010
-          text << :mulhsu
+          text << [:mulhsu]
         when 0b011
-          text << :mulhu
+          text << [:mulhu]
         when 0b100
-          text << :div
+          text << [:div]
         when 0b101
-          text << :divu
+          text << [:divu]
         when 0b110
-          text << :rem
+          text << [:rem]
         when 0b111
-          text << :remu
+          text << [:remu]
         else
           raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0110011"
         end
@@ -235,7 +267,8 @@ module Riscv
         puts "unknown opcode '0b#{opcode.to_s(2).rjust(7,'0')}' in #{hash}"
       end
       return "NIY".red if text.empty?
-      return text.join(" ").green
+      text.flatten!
+      return (text.shift.to_s+" "+text.join(" ")).green
     end
 
     def run

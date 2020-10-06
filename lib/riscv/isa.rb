@@ -28,12 +28,12 @@ module Riscv
       b_type: {
         imm_12:    31..31,
         imm_10_5:  30..25,
-        rs2:      24..20,
-        rs1:      19..15,
-        funct3:   14..12,
-        imm_4_1:  11..8,
-        imm_7:     7..7,
-        opcode:    6..0
+        rs2:       24..20,
+        rs1:       19..15,
+        funct3:    14..12,
+        imm_4_1:   11..8,
+        imm_11:     7..7,
+        opcode:     6..0
       },
       u_type: {
         imm_31_12: 31..12,
@@ -84,9 +84,9 @@ module Riscv
       :lbu    => {:format => :i_type, :opcode => 0b0000011, :funct3 => 0x04, :funct7 => nil , :descr => "rd = M[rs1+imm][0:7]"       },
       :lhu    => {:format => :i_type, :opcode => 0b0000011, :funct3 => 0x05, :funct7 => nil , :descr => "rd = M[rs1+imm][0:7]"       }, #???
       #----------------------------------------------------------------------------------------
-      :sb     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x00, :funct7 => nil , :descr => "???"   },
-      :sh     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x01, :funct7 => nil , :descr => "???"   },
-      :sw     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x02, :funct7 => nil , :descr => "???"   },
+      :sb     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x00, :funct7 => nil , :descr => "M[rs1+imm][0:7]=rs2[0:7]"   },
+      :sh     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x01, :funct7 => nil , :descr => "M[]"   },
+      :sw     => {:format => :s_type, :opcode => 0b0100011, :funct3 => 0x02, :funct7 => nil , :descr => "M[rs1+imm][0:31]=rs2[0:31]"   },
       #-----  --------------------------------------------------------------------------------
       :addi   => {:format => :i_type, :opcode => 0b0010011, :funct3 => 0x00, :funct7 => 0x00, :descr => "rd = rs1 + imm"             },
       :slti   => {:format => :i_type, :opcode => 0b0010011, :funct3 => 0x02, :funct7 => 0x00, :descr => "rd =(rs1 < imm)?1:0"        },

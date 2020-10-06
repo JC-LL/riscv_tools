@@ -121,12 +121,12 @@ module Riscv
 
     def parse_arg
       if showNext.is_a? [:word,:ident]
-        arg=acceptIt
+        arg=Arg.new(acceptIt)
         # supplemental info : (?)
         if showNext.is_a? :label
           acceptIt
         elsif showNext.is_a? :parenth
-          acceptIt
+          arg=ArgParenth.new(arg.tok,acceptIt)
         end
         return arg
       end

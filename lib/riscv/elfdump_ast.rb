@@ -71,4 +71,27 @@ module Riscv
     end
   end
 
+  class Arg < AstNode
+    attr_accessor :tok
+    def initialize tok
+      @tok=tok
+    end
+
+    def to_s
+      @tok.val
+    end
+  end
+
+  class ArgParenth < Arg
+    attr_accessor :parenth
+    def initialize tok,parenth
+      super(tok)
+      @parenth=parenth
+    end
+
+    def to_s
+      tok.to_s+@parenth.val
+    end
+  end
+
 end
