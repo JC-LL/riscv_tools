@@ -38,6 +38,7 @@ module Riscv
         end
       rescue Exception => e
         puts e unless compiler.options[:mute]
+        raise
         return false
       end
     end
