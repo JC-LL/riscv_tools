@@ -12,6 +12,7 @@ module Riscv
       },
       i_type: {
         imm_11_0: 31..20,
+        imm_11_5: 31..25,
         rs1:      19..15,
         funct3:   14..12,
         rd:       11..7,
@@ -60,7 +61,8 @@ module Riscv
       0b1101111 => :j_type,
       0b1100111 => :i_type,
       0b0110111 => :u_type,
-      0b0010111 => :u_type
+      0b0010111 => :u_type,
+      0b1110011 => :i_type,
     }
 
     INSTRUCTION_ENCODING_H={
@@ -110,18 +112,18 @@ module Riscv
       :or     => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x06, :funct7 => 0x00, :descr => "rd = rs1 | rs2"             },
       :and    => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
       #------ --------------------------------------------------------------------------------
-      :fence  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :fencei => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
+      :fence  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :fencei => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
       #------ --------------------------------------------------------------------------------
-      :ecall  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :ebreak => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
+      :ecall  => {:format => :r_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :ebreak => {:format => :r_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
       #------ --------------------------------------------------------------------------------
-      :csrrw  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :csrrs  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :csrrc  => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :csrrwi => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :csrrsi => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
-      :csrrci => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
+      :csrrw  => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => ""                           },
+      :csrrs  => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :csrrc  => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :csrrwi => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :csrrsi => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
+      :csrrci => {:format => :i_type, :opcode => 0b1110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "?"                          },
       # ==================================================== RV32 M ===================================================================
       :mul    => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },
       :mulh   => {:format => :r_type, :opcode => 0b0110011, :funct3 => 0x07, :funct7 => 0x00, :descr => "rd = rs1 & rs2"             },

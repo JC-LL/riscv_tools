@@ -97,7 +97,7 @@ module Riscv
         options[:dummy_transform] = true
       end
 
-      parser.on("--vv", "verbose") do
+      parser.on("--verbose", "verbose") do
         options[:verbose] = true
       end
 

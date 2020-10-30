@@ -249,3 +249,8 @@ _ fsqrt.d   rd rs1 24..20=0 31..27=0x0B rm       26..25=1 6..2=0x14 1..0=3
 - **fmsub.q   rd rs1 rs2 rs3 rm 26..25=3 6..2=0x11 1..0=3
 - **fnmsub.q  rd rs1 rs2 rs3 rm 26..25=3 6..2=0x12 1..0=3
 - **fnmadd.q  rd rs1 rs2 rs3 rm 26..25=3 6..2=0x13 1..0=3
+
+## Calling conventions
+Function arguments are usually passed in the a0 to a7 registers, not on the stack. An argument is only passed via the stack if there is no room in the a* registers left.
+
+Some registers are caller saved while others are callee saved. That means before calling a function the caller has to save all caller saved registers to the stack if it wants to retain their content. Similarly, the called function has to save all callee saved registers to the stack if it wants to use them for its own purposes.

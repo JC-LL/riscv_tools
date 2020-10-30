@@ -1,7 +1,8 @@
 module Riscv
   module Utils
+
     def step
-      puts "step : hit a key !"
+      puts "step : hit enter !"
       $stdin.gets
     end
 
@@ -26,7 +27,12 @@ module Riscv
 
     def showregs reg=nil
       @reg.each do |id,value|
-        if reg and reg==id
+        if reg
+          if reg==id
+            puts "x#{id}".rjust(3)+":#{value.to_s(16).rjust(8,'0')}"
+            return
+          end
+        else
           puts "x#{id}".rjust(3)+":#{value.to_s(16).rjust(8,'0')}"
         end
       end
@@ -35,6 +41,8 @@ module Riscv
     def showmem addr=nil
       if addr
         value=@memory[addr]
+        raise "nil value at 0x#{addr.to_s(16)}" unless value
+        puts "showmem 0x#{addr.to_s(16)} : #{value}"
         puts "0x#{addr.to_s(16).rjust(8,'0')} 0x#{value.to_s(16).rjust(8,'0')}"
       else
         @memory.each do |addr,value|

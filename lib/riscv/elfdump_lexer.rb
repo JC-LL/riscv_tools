@@ -9,20 +9,7 @@ module Riscv
       keyword :section
 
       #............................................................
-      #keyword :addi
-      #keyword :sub
-      ##............................................................
-      #keyword :sub
-      #keyword :blt
-      #keyword :beq
-      #keyword :bne
-      #keyword :bge
-      #keyword :jalr
-      #keyword :jal
-      #keyword :sw
-      #keyword :lui
-      #............................................................
-      token :label             => /\A\<[\.a-zA-Z0-9_]+\>/
+      token :label             => /\A\<[\.a-zA-Z0-9_\+]+\>/
       token :directive         => /\A\.[a-zA-Z]+\w*(\.[a-zA-Z]+\w*)?/
       token :addr_label        => /[+-]?[0-9a-fA-F]+ \<(.*)\>\:/
       token :addr_instr        => /[+-]?[0-9a-fA-F]+\:\s*[0-9a-fA-F]+/

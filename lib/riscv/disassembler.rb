@@ -6,11 +6,19 @@ module Riscv
 
     include Utils
 
+    attr_accessor :options
+
+    def initialize options={}
+      @options=options
+    end
+
     def print_memory memory, symbolic_memory={}
-      puts " - printing memory"
-      puts "ISA encoding : "
-      ISA::FORMAT_ENCODING_H.each do |type,encoding|
-        puts "#{type} : #{encoding}"
+      if @options[:verbose]
+        puts " - printing memory"
+        puts "ISA encoding : "
+        ISA::FORMAT_ENCODING_H.each do |type,encoding|
+          puts "#{type} : #{encoding}"
+        end
       end
       max_hexa_digits=memory.keys.map{|addr| addr.to_s(16).size}.max
       memory.each do |addr,bin|
@@ -21,7 +29,9 @@ module Riscv
         end
         opcode=bin & 0b1111111 # 7 bits LSB
         unless format=ISA::OPCODE_FORMAT_H[opcode]
+          puts "unknown format for opcode=0b#{opcode.to_s(2)}"
           format="?_unknown"
+          abort
         end
         format_s=format.to_s.split("_").first
         decoding={}
@@ -36,13 +46,11 @@ module Riscv
           raise
         end
         disassemble_instr=disassemble_instr.ljust(20,'.')
-        puts "#{addr.to_s(16).rjust(max_hexa_digits)} #{bin.to_s(16).rjust(8,'0')} #{bin.to_s(2).rjust(32,'0')} #{instr} #{disassemble_instr} #{decoding}"
-        #puts "\t#{decoding}"
-        #puts "\t#{disassemble_instr}"
+        if @options[:verbose]
+          puts "#{addr.to_s(16).rjust(max_hexa_digits)} #{bin.to_s(16).rjust(8,'0')} #{bin.to_s(2).rjust(32,'0')} #{instr} #{disassemble_instr} #{decoding}"
+        end
       end
     end
-
-
 
     def disassemble fields_h
       #pp field
@@ -61,6 +69,7 @@ module Riscv
         imm+=fields_h[:imm_11]    << 11
         imm+=fields_h[:imm_19_12] << 12
         rd= fields_h[:rd]
+        imm=imm-2**21 if imm[20]==1
         imm="pc+#{imm}"
         text << [:jal,rd,imm]
       when 0b1100111 #===== I format =====
@@ -152,13 +161,13 @@ module Riscv
           text << [:slli,rd,rs1,imm]
         when 0b101
           #srli,srai
-          case imm_11_5=(fields_h[:imm_11_0] & 0b1111111) # 7 bits
+          case imm_11_5=fields_h[:imm_11_5]
           when 0b0000000
             text << [:srli,rd,rs1,imm]
           when 0b0100000
             text << [:srai,rd,rs1,imm]
           else
-            raise "unknown case for opcode=0b0010011 with func3=0b101"
+            raise "unknown case for i_type instruction with func3=0b101 : imm_11_5=0b#{imm_11_5.to_s(2)}"
           end
         else
           raise "unknown funct3 '0b#{funct3.to_s(2)}'"
@@ -187,7 +196,7 @@ module Riscv
           text << [:xor,rd,rs1,rs2]
         when 0b101
           #srl,sra
-          case imm_11_5=(fields_h[:imm_11_0] & 0b1111111) # 7 bits
+          case imm_11_5=fields_h[:funct7]
           when 0b0000000
             text << [:srl,rd,rs1,rs2]
           when 0b0100000
@@ -204,10 +213,35 @@ module Riscv
         end
       when 0b0001111
         #fence, fence.i
-      when 0b1100111
-        #ecall,ebreak
       when 0b1110011
-        #csrrw,etc
+        ##ecall,ebreak,csrrw,etc
+        csr=fields_h[:imm_11_0]
+        rs1=fields_h[:rs1]
+        rd =fields_h[:rd]
+        case funct3=fields_h[:funct3]
+        when 0b000
+          #ecall,ebreak
+          case imm_11_0=fields_h[:imm_11_0]
+          when 0b000000000000
+            text << [:ecall]
+          when 0b000000000001
+            text << [:ebreak]
+          end
+        when 0b001
+          text << [:csrrw,csr,rs1,rd]
+        when 0b010
+          text << [:csrrs,csr,rs1,rd]
+        when 0b011
+          text << [:csrrc,csr,rs1,rd]
+        when 0b101
+          text << [:csrrwi,csr,rs1,rd]
+        when 0b110
+          text << [:csrrsi,csr,rs1,rd]
+        when 0b111
+          text << [:csrrci,csr,rs1,rd]
+        else
+          raise "unknown funct3=0b#{funct3.to_s(2)} for opcode=0b0110011"
+        end
       when 0b0110011
         #mul etc
         case funct3=fields_h[:funct3]

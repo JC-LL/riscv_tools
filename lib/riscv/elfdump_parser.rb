@@ -12,6 +12,10 @@ module Riscv
       @options=options
     end
 
+    def verbose
+      @options[:verbose]
+    end
+
     def lex filename
       unless File.exists?(filename)
         raise "ERROR : cannot find file '#{filename}'"
@@ -33,7 +37,7 @@ module Riscv
     end
 
     def parse filename
-      puts "parsing #{filename}"
+      puts "parsing #{filename}" if verbose
       basename=File.basename(filename)
       begin
         @tokens=lex(filename)
@@ -56,14 +60,14 @@ module Riscv
     def parse_section
       section=Section.new()
       if tokens.any?
-        print "=> seeking next section..."
+        print "=> seeking next section..." if verbose
         until showNext.is_a? :section
           acceptIt
         end
         acceptIt
         section.name=expect(:directive).val
         expect :colon
-        puts "found #{section.name}"
+        puts "found #{section.name}" if verbose
         section.blocks=parse_labelled_blocks
         return section
       end
@@ -82,7 +86,7 @@ module Riscv
       addr_label=expect(:addr_label).val
       addr_label.delete!(':')
       addr,label=addr_label.split
-      puts "=> parse labelled block #{label} at #{addr}"
+      puts "=> parse labelled block #{label} at #{addr}"  if verbose
       block=Labelled_block.new(addr,label)
       while tokens.any? and showNext.is_a? :addr_instr #address
         block.instructions << parse_instruction_line
@@ -91,11 +95,11 @@ module Riscv
     end
 
     def parse_instruction_line
-      print "   - parse instruction : "
+      print "   - parse instruction : "  if verbose
       addr_bin=expect(:addr_instr).val
       addr,bin=addr_bin.split(/:\t/)
       instr=parse_instruction(addr,bin)
-      puts instr.inspect
+      puts instr.inspect if verbose
       instr
     end
 

@@ -26,12 +26,13 @@ module Riscv
       dot_s_filename="#{basename}.s"
       cmd="riscv64-unknown-elf-objdump -d #{elf_filename} --disassembler-options=no-aliases > #{dot_s_filename}"
       system(cmd)
-      ast=ElfDumpParser.new.parse dot_s_filename
+      ast=ElfDumpParser.new(options).parse dot_s_filename
     end
 
     def simulate elf_filename
       program = parse_elfdump(elf_filename)
       simulator=Iss.new
+      simulator.set_options(options)
       simulator.load_program program
       simulator.run
     end
